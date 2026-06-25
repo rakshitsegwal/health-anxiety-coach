@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Design tokens — "Symptom Spiral Reset"
+  Direction: calm, credible, premium, hopeful. A low-stimulation sage-tinted
+  paper background (not cream), a steady healing teal-green primary that reads
+  "forward / growth" rather than clinical-blue cliché, and a muted clay accent
+  used sparingly for human warmth (founder). Display = Fraunces (soft optical
+  serif, warmth) with restraint; Body = Hanken Grotesk (friendly, legible on
+  mobile). Signature motif: a spiral unwinding into a straight line.
+*/
+:root {
+  --bg: #F5F6F3;
+  --surface: #FFFFFF;
+  --ink: #16242B;
+  --ink-soft: #51616A;
+  --primary: #2C7A6B;
+  --primary-deep: #205A4F;
+  --accent: #E0A372;
+  --line: #E4E6E1;
+  --warn: #B4791F;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-feature-settings: "kern";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3 { font-family: var(--font-display), Georgia, serif; letter-spacing: -0.01em; }
+  ::selection { background: color-mix(in srgb, var(--primary) 18%, transparent); }
+  *:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* Readable long-form styling for the legal pages. */
+.prose-legal h1 { font-size: 1.875rem; line-height: 1.15; margin-bottom: 0.5rem; }
+.prose-legal h2 { font-size: 1.25rem; margin-top: 2rem; margin-bottom: 0.5rem; color: var(--ink); }
+.prose-legal p, .prose-legal li { color: var(--ink-soft); line-height: 1.65; }
+.prose-legal p { margin-top: 0.75rem; }
+.prose-legal ul { margin-top: 0.5rem; list-style: disc; padding-left: 1.25rem; }
+.prose-legal li { margin-top: 0.25rem; }
+.prose-legal a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.prose-legal strong { color: var(--ink); }
