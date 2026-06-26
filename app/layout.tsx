@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   // Meta (Facebook) domain verification — renders
   // <meta name="facebook-domain-verification" content="…" /> on every page.
   other: {
-    "facebook-domain-verification": "plefuczalmepnby6pfp05xfmh7gefr",
+    "facebook-domain-verification": "eukfluvbdhw1t25cn6zu7c5pcosjfp",
   },
 };
 
