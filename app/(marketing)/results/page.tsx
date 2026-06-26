@@ -46,7 +46,7 @@ export default async function ResultsPage() {
 
   return (
     <main className="px-5 py-8">
-      <ViewContentPixel name="results" />
+      <ViewContentPixel />
       <div className="mx-auto w-full max-w-content space-y-6">
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl">

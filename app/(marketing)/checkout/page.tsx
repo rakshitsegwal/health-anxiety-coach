@@ -30,7 +30,7 @@ export default async function CheckoutPage() {
 
   return (
     <main className="px-5 py-8">
-      <ViewContentPixel name="offer" />
+      <ViewContentPixel />
       <div className="mx-auto w-full max-w-content space-y-8">
         <CheckoutSummary />
         <RazorpayButton email={lead.email as string} />

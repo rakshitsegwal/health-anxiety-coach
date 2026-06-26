@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Analytics } from "@/lib/analytics";
+import { MetaPixel } from "@/lib/metaPixel";
 
 // One-click refund under the guarantee, with a single confirm step (this ends
 // access, so we don't want accidental taps). Fires refund_requested on success.
@@ -16,7 +16,7 @@ export function RefundRequest() {
     try {
       const res = await fetch("/api/refund-request", { method: "POST" });
       if (!res.ok) throw new Error("failed");
-      Analytics.refundRequested();
+      MetaPixel.refundRequested();
       setStatus("done");
       router.refresh();
     } catch {

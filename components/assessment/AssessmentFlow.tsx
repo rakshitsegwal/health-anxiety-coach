@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QUESTIONS } from "@/lib/assessment/questions";
 import { getUtm } from "@/lib/utm";
-import { Analytics } from "@/lib/analytics";
+import { MetaPixel } from "@/lib/metaPixel";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "./ProgressBar";
 import { QuestionCard } from "./QuestionCard";
@@ -47,7 +47,7 @@ export function AssessmentFlow() {
         body: JSON.stringify({ email, answers, utm: getUtm() }),
       });
       if (!res.ok) throw new Error("request failed");
-      Analytics.lead();
+      MetaPixel.lead();
       router.push("/results");
     } catch {
       setSubmitting(false);

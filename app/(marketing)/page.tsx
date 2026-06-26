@@ -18,7 +18,7 @@ export default function LandingPage() {
   return (
     <main className="pb-24">
       <UtmCapture />
-      <ViewContentPixel name="lp" />
+      <ViewContentPixel />
       <Hero />
       <TheLoop />
       <HowItWorks />

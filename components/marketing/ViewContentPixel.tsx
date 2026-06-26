@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
-import { Analytics } from "@/lib/analytics";
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
+import { MetaPixel } from "@/lib/metaPixel";
 
-// Fires Pixel ViewContent once on mount. `name` is a neutral content tag
-// ("lp" | "results") — never a sensitive trait.
-export function ViewContentPixel({ name }: { name: string }) {
+// Fires Pixel ViewContent once per route. Keyed on pathname (not just a mount
+// guard) so it fires exactly once per page even if React reuses the instance
+// across a navigation, and once under React Strict Mode (the lastFired ref has no
+// cleanup that would reset it). Only the fixed content_name/category go to Meta.
+export function ViewContentPixel() {
+  const pathname = usePathname();
+  const lastFired = useRef<string | null>(null);
   useEffect(() => {
-    Analytics.viewContent(name);
-  }, [name]);
+    if (lastFired.current === pathname) return;
+    lastFired.current = pathname;
+    MetaPixel.viewContent();
+  }, [pathname]);
   return null;
 }

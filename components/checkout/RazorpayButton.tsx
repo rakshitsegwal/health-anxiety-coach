@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Analytics } from "@/lib/analytics";
+import { MetaPixel } from "@/lib/metaPixel";
 
 // Loads Razorpay checkout.js, creates the order server-side, opens checkout
 // (UPI/wallet first, email prefilled), and on success verifies SERVER-SIDE before
@@ -53,8 +53,6 @@ export function RazorpayButton({ email }: { email: string }) {
     setLoading(true);
     setError(null);
     try {
-      Analytics.initiateCheckout();
-
       const ok = await loadScript();
       if (!ok || !window.Razorpay) throw new Error("script");
 
@@ -94,8 +92,6 @@ export function RazorpayButton({ email }: { email: string }) {
             razorpay_payment_id: string;
             razorpay_signature: string;
           };
-          // Razorpay only calls handler on a successful payment → fire Purchase.
-          Analytics.purchase();
           // Cap the wait: if /verify is slow, don't freeze the buyer on checkout —
           // proceed to thank-you, where the webhook + status poll back it up.
           const ctrl = new AbortController();
@@ -112,6 +108,10 @@ export function RazorpayButton({ email }: { email: string }) {
               signal: ctrl.signal,
             });
             const body = v.ok ? await v.json() : null;
+            // Fire Purchase ONLY after the server VERIFIED the payment (signature +
+            // provisioning succeeded) — never before. eventID = Razorpay order id
+            // so a future server-side CAPI Purchase dedupes against this one.
+            if (v.ok && body?.ok) MetaPixel.purchase(r.razorpay_order_id);
             toThankYou(r.razorpay_order_id, !body?.sessionEstablished);
           } catch {
             toThankYou(r.razorpay_order_id, true);
@@ -126,6 +126,8 @@ export function RazorpayButton({ email }: { email: string }) {
         setError("That payment didn't go through. Please try again.");
         setLoading(false);
       });
+      // Razorpay is about to open → InitiateCheckout. eventID = order id (CAPI).
+      MetaPixel.initiateCheckout(data.orderId);
       rzp.open();
     } catch {
       setError("Couldn't start checkout. Please try again.");

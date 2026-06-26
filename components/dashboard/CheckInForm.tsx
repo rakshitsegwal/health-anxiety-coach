@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Analytics } from "@/lib/analytics";
+import { MetaPixel } from "@/lib/metaPixel";
 import { Button } from "@/components/ui/Button";
 import {
   type CheckIn,
@@ -66,7 +66,7 @@ export function CheckInForm({
       });
       if (!res.ok) throw new Error("failed");
       const data = await res.json();
-      if (day === 1) Analytics.day1Completed();
+      if (day === 1) MetaPixel.dayCompleted();
       setSavedScore(typeof data.spiralScore === "number" ? data.spiralScore : livePreview);
       setDone(true);
       setOpen(false); // collapse back to the (now-updated) score summary

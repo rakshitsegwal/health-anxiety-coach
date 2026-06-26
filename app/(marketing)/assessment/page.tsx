@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AssessmentFlow } from "@/components/assessment/AssessmentFlow";
+import { ViewContentPixel } from "@/components/marketing/ViewContentPixel";
 
 export const metadata: Metadata = {
   title: "Your Symptom Spiral Assessment",
@@ -9,6 +10,8 @@ export const metadata: Metadata = {
 export default function AssessmentPage() {
   return (
     <main>
+      {/* Assessment started → ViewContent */}
+      <ViewContentPixel />
       <AssessmentFlow />
     </main>
   );

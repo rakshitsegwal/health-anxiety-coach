@@ -16,7 +16,7 @@ const REQUIRED = [
 
 const RECOMMENDED = [
   "EMAIL_FROM", // has a fallback, but you want your own sender
-  "NEXT_PUBLIC_FB_PIXEL_ID", // Pixel is skipped if unset
+  "NEXT_PUBLIC_META_PIXEL_ID", // Meta Pixel id (has a hardcoded fallback)
 ] as const;
 
 export function validateEnv(): void {
