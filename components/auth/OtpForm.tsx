@@ -30,19 +30,25 @@ export function OtpForm({ initialEmail = "" }: { initialEmail?: string }) {
     });
     setLoading(false);
     if (error) {
-      // Distinguish "no such account" from "we couldn't SEND the code". Telling a
-      // paying customer "no account" when the email server just failed is wrong and
-      // alarming — only say that when the account genuinely doesn't exist.
+      // Tailor the message: rate-limit (wait), genuinely-no-account, or a transient
+      // send failure. Never tell a paying customer "no account" for a send error.
       const msg = error.message?.toLowerCase() ?? "";
+      const rateLimited =
+        error.status === 429 ||
+        msg.includes("rate limit") ||
+        msg.includes("too many") ||
+        msg.includes("exceeded");
       const notFound =
         error.status === 422 ||
         msg.includes("signups not allowed") ||
         msg.includes("not allowed") ||
         msg.includes("user not found");
       setError(
-        notFound
-          ? "We couldn't find an account for that email. Use the same email you checked out with."
-          : "We couldn't send your sign-in code right now — please try again in a moment. If it keeps failing, email rakshit1352@gmail.com and we'll get you in."
+        rateLimited
+          ? "Too many attempts right now — please wait a couple of minutes, then request a new code."
+          : notFound
+            ? "We couldn't find an account for that email. Use the same email you checked out with."
+            : "We couldn't send your sign-in code right now — please try again in a moment. If it keeps failing, email rakshit1352@gmail.com and we'll get you in."
       );
       return;
     }
