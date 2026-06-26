@@ -35,6 +35,11 @@ export const metadata: Metadata = {
     title: "The Symptom Spiral Reset",
     description: DESCRIPTION,
   },
+  // Meta (Facebook) domain verification — renders
+  // <meta name="facebook-domain-verification" content="…" /> on every page.
+  other: {
+    "facebook-domain-verification": "plefuczalmepnby6pfp05xfmh7gefr",
+  },
 };
 
 export const viewport: Viewport = {
