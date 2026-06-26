@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import { MetaPixel } from "@/components/MetaPixel";
+import { Clarity } from "@/components/Clarity";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -56,6 +57,7 @@ export default function RootLayout({
       <body className="font-sans antialiased min-h-screen bg-bg text-ink">
         {children}
         <MetaPixel />
+        <Clarity />
       </body>
     </html>
   );
