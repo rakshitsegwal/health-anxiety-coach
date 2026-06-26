@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 
-// Email → 6-digit OTP → session → dashboard. No password, no OAuth, no magic
+// Email → one-time code → session → dashboard. No password, no OAuth, no magic
 // link. shouldCreateUser:false so only provisioned buyers can sign in (a
 // non-buyer who only got the free Day 1 has no account).
 export function OtpForm({ initialEmail = "" }: { initialEmail?: string }) {
@@ -73,21 +73,21 @@ export function OtpForm({ initialEmail = "" }: { initialEmail?: string }) {
     return (
       <form onSubmit={verifyCode}>
         <p className="text-ink-soft">
-          We sent a 6-digit code to <strong className="text-ink">{email}</strong>.
-          Enter it below.
+          We sent a code to <strong className="text-ink">{email}</strong>. Enter it
+          below.
         </p>
         <label htmlFor="otp" className="sr-only">
-          6-digit code
+          Verification code
         </label>
         <input
           id="otp"
           inputMode="numeric"
           autoComplete="one-time-code"
-          maxLength={6}
-          placeholder="••••••"
+          maxLength={10}
+          placeholder="Enter the code"
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-          className="mt-5 w-full rounded-2xl border border-line bg-surface px-5 py-4 text-center text-2xl tracking-[0.4em] outline-none focus:border-primary"
+          className="mt-5 w-full rounded-2xl border border-line bg-surface px-5 py-4 text-center text-2xl tracking-[0.3em] outline-none focus:border-primary"
         />
         {error ? <p className="mt-3 text-sm text-warn">{error}</p> : null}
         <div className="mt-5">

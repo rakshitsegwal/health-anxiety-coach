@@ -36,7 +36,7 @@ export default async function LoginPage({
       <div className="mx-auto w-full max-w-content">
         <h1 className="text-3xl">Sign in</h1>
         <p className="mt-2 text-ink-soft">
-          Enter your email and we&apos;ll send a 6-digit code. No password.
+          Enter your email and we&apos;ll send a one-time code. No password.
         </p>
 
         {sp.revoked ? (

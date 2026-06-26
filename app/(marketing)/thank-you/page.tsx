@@ -114,7 +114,7 @@ function Confirmed({ baselineScore }: { baselineScore: number | null }) {
         <a href="/login" className="underline underline-offset-4">
           the login page
         </a>{" "}
-        — we&apos;ll send a 6-digit code (no password to remember).
+        — we&apos;ll send a one-time code (no password to remember).
       </p>
       <GuaranteeAndSafety />
     </Shell>

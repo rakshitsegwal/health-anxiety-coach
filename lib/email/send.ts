@@ -48,7 +48,7 @@ export async function sendPurchaseConfirmation(to: string) {
     to,
     subject: "You're in — Day 0 starts now",
     html: wrap(
-      `<h2>You're in.</h2><p>Your Symptom Spiral Reset is ready and all 14 days are unlocked. Open Day 1 and map your spiral — it takes five minutes and it's where this starts working.</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/dashboard">Go to your dashboard →</a></p><p>If you ever need to log back in, use your email at <a href="${process.env.NEXT_PUBLIC_SITE_URL}/login">the login page</a> — we'll send a 6-digit code. 30-day money-back guarantee.</p>`
+      `<h2>You're in.</h2><p>Your Symptom Spiral Reset is ready and all 14 days are unlocked. Open Day 1 and map your spiral — it takes five minutes and it's where this starts working.</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/dashboard">Go to your dashboard →</a></p><p>If you ever need to log back in, use your email at <a href="${process.env.NEXT_PUBLIC_SITE_URL}/login">the login page</a> — we'll send a one-time code. 30-day money-back guarantee.</p>`
     ),
   });
 }
