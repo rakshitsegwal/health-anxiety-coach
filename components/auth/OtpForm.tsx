@@ -30,8 +30,19 @@ export function OtpForm({ initialEmail = "" }: { initialEmail?: string }) {
     });
     setLoading(false);
     if (error) {
+      // Distinguish "no such account" from "we couldn't SEND the code". Telling a
+      // paying customer "no account" when the email server just failed is wrong and
+      // alarming — only say that when the account genuinely doesn't exist.
+      const msg = error.message?.toLowerCase() ?? "";
+      const notFound =
+        error.status === 422 ||
+        msg.includes("signups not allowed") ||
+        msg.includes("not allowed") ||
+        msg.includes("user not found");
       setError(
-        "We couldn't find an account for that email. If you've purchased, use the same email you checked out with."
+        notFound
+          ? "We couldn't find an account for that email. Use the same email you checked out with."
+          : "We couldn't send your sign-in code right now — please try again in a moment. If it keeps failing, email rakshit1352@gmail.com and we'll get you in."
       );
       return;
     }
