@@ -74,3 +74,16 @@ export async function sendRefundConfirmation(to: string) {
     ),
   });
 }
+
+// Sign-in OTP code — delivered via the Supabase "Send Email" auth hook so the code
+// goes out through Resend's API (which works) instead of Supabase SMTP.
+export async function sendOtpEmail(to: string, token: string) {
+  return client().emails.send({
+    from: FROM,
+    to,
+    subject: `Your sign-in code: ${token}`,
+    html: wrap(
+      `<h2>Your sign-in code</h2><p>Enter this code to sign in to The Symptom Spiral Reset:</p><p style="font-size:30px;font-weight:700;letter-spacing:6px;color:#16242B;margin:16px 0">${token}</p><p style="font-size:13px;color:#51616A">This code expires shortly. If you didn't request it, you can ignore this email.</p>`
+    ),
+  });
+}
