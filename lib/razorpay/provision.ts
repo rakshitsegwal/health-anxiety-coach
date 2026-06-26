@@ -30,35 +30,59 @@ export async function provisionPaidOrder(opts: {
     return { userId: null, email: null };
   }
 
-  // 2. Idempotently mark paid — only the first writer flips 'created' → 'paid'.
-  await admin
-    .from("orders")
-    .update({
-      status: "paid",
-      paid_at: new Date().toISOString(),
-      razorpay_payment_id: opts.razorpayPaymentId ?? null,
-    })
-    .eq("razorpay_order_id", opts.razorpayOrderId)
-    .neq("status", "paid");
+  const email = order.email as string;
 
-  // 3. Get-or-create the auth user (buy first, register after).
-  const userId = await getOrCreateUser(admin, order.email);
-  if (!userId) return { userId: null, email: order.email };
-
-  // 4. Ensure the profile exists, baseline copied from the lead (no-op if present).
-  await ensureProfile(admin, userId, order.email);
-
-  // 5. Link the order to the user (only if not already linked).
-  if (!order.user_id) {
-    await admin
+  // 2. All independent given the email — run concurrently: mark the order paid,
+  //    get-or-create the auth user, and read the lead's Day-0 baseline. Each is
+  //    idempotent. (Was a sequential chain; createUser dominated the latency.)
+  const [, userId, leadRes] = await Promise.all([
+    admin
       .from("orders")
-      .update({ user_id: userId })
+      .update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        razorpay_payment_id: opts.razorpayPaymentId ?? null,
+      })
       .eq("razorpay_order_id", opts.razorpayOrderId)
-      .is("user_id", null);
+      .neq("status", "paid"),
+    getOrCreateUser(admin, email),
+    admin
+      .from("leads")
+      .select("assessment_score, band")
+      .eq("email", email)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (!userId) {
+    console.error(`[provision] could not get/create user for ${email}`);
+    return { userId: null, email };
   }
 
+  // 3. Concurrently: upsert the profile (baseline from the lead, no-op if present)
+  //    and link the order to the user (if not already linked). Both idempotent.
+  const lead = leadRes.data;
+  await Promise.all([
+    admin.from("profiles").upsert(
+      {
+        user_id: userId,
+        email,
+        baseline_score: lead?.assessment_score ?? null,
+        baseline_band: lead?.band ?? null,
+      },
+      { onConflict: "user_id", ignoreDuplicates: true }
+    ),
+    order.user_id
+      ? Promise.resolve()
+      : admin
+          .from("orders")
+          .update({ user_id: userId })
+          .eq("razorpay_order_id", opts.razorpayOrderId)
+          .is("user_id", null),
+  ]);
+
   console.log(`[provision] ${opts.razorpayOrderId} ${Date.now() - t0}ms user=ok`);
-  return { userId, email: order.email };
+  return { userId, email };
 }
 
 async function getOrCreateUser(
@@ -110,31 +134,6 @@ async function findUserByEmail(
     if (data.users.length < 200) break;
   }
   return null;
-}
-
-async function ensureProfile(
-  admin: SupabaseClient,
-  userId: string,
-  email: string
-): Promise<void> {
-  // Copy the Day-0 baseline from the most recent lead for this email.
-  const { data: lead } = await admin
-    .from("leads")
-    .select("assessment_score, band")
-    .eq("email", email)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  await admin.from("profiles").upsert(
-    {
-      user_id: userId,
-      email,
-      baseline_score: lead?.assessment_score ?? null,
-      baseline_band: lead?.band ?? null,
-    },
-    { onConflict: "user_id", ignoreDuplicates: true }
-  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
