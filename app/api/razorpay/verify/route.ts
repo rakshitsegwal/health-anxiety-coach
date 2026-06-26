@@ -32,17 +32,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
+  const tStart = Date.now();
   if (!verifyPaymentSignature(orderId, paymentId, signature)) {
+    console.warn(`[verify] bad signature for order ${orderId}`);
     return NextResponse.json(
       { error: "Payment verification failed." },
       { status: 400 }
     );
   }
 
+  const tProv = Date.now();
   const { userId, email } = await provisionPaidOrder({
     razorpayOrderId: orderId,
     razorpayPaymentId: paymentId,
   });
+  console.log(`[verify] provision ${Date.now() - tProv}ms user=${!!userId}`);
   if (!userId || !email) {
     return NextResponse.json(
       { error: "Could not finalize your purchase." },
@@ -50,6 +54,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const sessionEstablished = await mintSession(email);
-  return NextResponse.json({ ok: true, sessionEstablished });
+  const tMint = Date.now();
+  const mint = await mintSession(email);
+  console.log(
+    `[verify] mint ${Date.now() - tMint}ms ok=${mint.ok}; TOTAL ${Date.now() - tStart}ms`
+  );
+
+  // Set the captured session cookies EXPLICITLY on this response so the browser
+  // is signed in on the success redirect (the webhook is only a backup).
+  const response = NextResponse.json({ ok: true, sessionEstablished: mint.ok });
+  for (const c of mint.cookies) {
+    response.cookies.set(c.name, c.value, c.options);
+  }
+  return response;
 }

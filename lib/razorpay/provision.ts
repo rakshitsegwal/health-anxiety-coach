@@ -1,7 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient as createServerClient } from "@/lib/supabase/server";
+
+export type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Idempotent post-payment provisioning. Both /verify (client callback) and
@@ -14,6 +17,7 @@ export async function provisionPaidOrder(opts: {
   razorpayPaymentId?: string | null;
 }): Promise<{ userId: string | null; email: string | null }> {
   const admin = createAdminClient();
+  const t0 = Date.now();
 
   // 1. Load the order — the source of truth for the buyer's email.
   const { data: order } = await admin
@@ -21,7 +25,10 @@ export async function provisionPaidOrder(opts: {
     .select("email, user_id")
     .eq("razorpay_order_id", opts.razorpayOrderId)
     .maybeSingle();
-  if (!order) return { userId: null, email: null };
+  if (!order) {
+    console.error(`[provision] order not found: ${opts.razorpayOrderId}`);
+    return { userId: null, email: null };
+  }
 
   // 2. Idempotently mark paid — only the first writer flips 'created' → 'paid'.
   await admin
@@ -50,6 +57,7 @@ export async function provisionPaidOrder(opts: {
       .is("user_id", null);
   }
 
+  console.log(`[provision] ${opts.razorpayOrderId} ${Date.now() - t0}ms user=ok`);
   return { userId, email: order.email };
 }
 
@@ -68,10 +76,14 @@ async function getOrCreateUser(
 
   // Create the user. They paid, so the email is pre-confirmed; login afterwards is
   // OTP only (no password, no emailed magic link).
+  const tCreate = Date.now();
   const { data: created, error } = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
   });
+  console.log(
+    `[provision] createUser ${Date.now() - tCreate}ms ${error ? "ERR " + error.message : "ok"}`
+  );
   if (created?.user) return created.user.id;
 
   // "Email already registered" (or a race with the other path): find the user.
@@ -126,38 +138,70 @@ async function ensureProfile(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Seamless post-payment session. We use generateLink ONLY to obtain a token we
-// immediately verify server-side — nothing is emailed — which sets the auth
-// cookies on this response so the buyer lands in /dashboard already signed in.
-// NOT a user-facing magic link, so the hard rule (no emailed magic links / OAuth)
-// is preserved. If anything here fails, the caller falls back to OTP login.
+// Seamless post-payment session. generateLink yields a token we immediately verify
+// server-side (nothing is emailed) to obtain a session; we CAPTURE the resulting
+// auth cookies and RETURN them so the caller sets them EXPLICITLY on the response.
+// This is the fix for the prod bug where the implicit next/headers cookie store
+// silently failed to attach the Set-Cookie headers — reporting success while the
+// browser got no session, forcing the slow OTP fallback. Fully timed/logged so
+// production shows exactly which step is slow or failing. NOT a user-facing magic
+// link, so the OTP-only rule is preserved. On any failure → caller falls back to
+// the webhook + OTP path.
 // ─────────────────────────────────────────────────────────────────────────────
-export async function mintSession(email: string): Promise<boolean> {
+export async function mintSession(
+  email: string
+): Promise<{ ok: boolean; cookies: CookieToSet[] }> {
+  const t0 = Date.now();
+  const collected: CookieToSet[] = [];
   try {
     const admin = createAdminClient();
+    const tGen = Date.now();
     const { data, error } = await admin.auth.admin.generateLink({
       type: "magiclink",
       email,
     });
+    console.log(
+      `[mintSession] generateLink ${Date.now() - tGen}ms ${error ? "ERR " + error.message : "ok"}`
+    );
     const tokenHash = data?.properties?.hashed_token;
-    if (error || !tokenHash) {
-      console.error("[provision] generateLink failed:", error?.message);
-      return false;
-    }
+    if (error || !tokenHash) return { ok: false, cookies: [] };
 
-    // The SSR client writes session cookies via the request's cookie store.
-    const ssr = await createServerClient();
-    const { error: vErr } = await ssr.auth.verifyOtp({
+    // SSR client whose setAll only CAPTURES the cookies (it does not write to any
+    // store); the caller sets them on the actual NextResponse.
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(toSet: CookieToSet[]) {
+            for (const c of toSet) collected.push(c);
+          },
+        },
+      }
+    );
+    const tVer = Date.now();
+    const { error: vErr } = await supabase.auth.verifyOtp({
       token_hash: tokenHash,
       type: "magiclink",
     });
-    if (vErr) {
-      console.error("[provision] verifyOtp failed:", vErr.message);
-      return false;
-    }
-    return true;
+    console.log(
+      `[mintSession] verifyOtp ${Date.now() - tVer}ms ${
+        vErr ? "ERR " + vErr.message : `ok cookies=${collected.length}`
+      }`
+    );
+    if (vErr || collected.length === 0) return { ok: false, cookies: [] };
+
+    console.log(`[mintSession] total ${Date.now() - t0}ms ok cookies=${collected.length}`);
+    return { ok: true, cookies: collected };
   } catch (e) {
-    console.error("[provision] mintSession threw:", e);
-    return false;
+    console.error(
+      `[mintSession] threw after ${Date.now() - t0}ms:`,
+      e instanceof Error ? e.message : e
+    );
+    return { ok: false, cookies: [] };
   }
 }

@@ -96,6 +96,10 @@ export function RazorpayButton({ email }: { email: string }) {
           };
           // Razorpay only calls handler on a successful payment → fire Purchase.
           Analytics.purchase();
+          // Cap the wait: if /verify is slow, don't freeze the buyer on checkout —
+          // proceed to thank-you, where the webhook + status poll back it up.
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 12000);
           try {
             const v = await fetch("/api/razorpay/verify", {
               method: "POST",
@@ -105,11 +109,14 @@ export function RazorpayButton({ email }: { email: string }) {
                 razorpay_payment_id: r.razorpay_payment_id,
                 razorpay_signature: r.razorpay_signature,
               }),
+              signal: ctrl.signal,
             });
             const body = v.ok ? await v.json() : null;
             toThankYou(r.razorpay_order_id, !body?.sessionEstablished);
           } catch {
             toThankYou(r.razorpay_order_id, true);
+          } finally {
+            clearTimeout(timer);
           }
         },
         modal: { ondismiss: () => setLoading(false) },

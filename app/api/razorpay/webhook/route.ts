@@ -58,6 +58,9 @@ async function reconcile(admin: SupabaseClient, event: RazorpayEvent) {
     const orderId = p.payment?.entity?.order_id ?? p.order?.entity?.id;
     const paymentId = p.payment?.entity?.id ?? null;
     if (orderId) {
+      // If /verify already provisioned, this is a no-op backup. The log lets us
+      // confirm the webhook is the BACKUP path, not the primary one.
+      console.log(`[webhook] ${type} → provisioning order ${orderId} (backup path)`);
       await provisionPaidOrder({
         razorpayOrderId: orderId,
         razorpayPaymentId: paymentId,
